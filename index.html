@@ -339,7 +339,8 @@
 
   function moodOf(hp) {
     if (hp >= 60) return { face: "radiant", text: "물이 맑고 가득해요", color: "#4FA8A0" };
-    if (hp >= 20) return { face: "calm", text: "평온한 하루예요", color: "#8fc9c2" };
+    if (hp >= 20) return { face: "calm", text: "기분 좋은 날이에요", color: "#8fc9c2" };
+    if (hp >= 0) return { face: "calm", text: "평온한 하루예요", color: "#8fc9c2" };
     if (hp >= -19) return { face: "neutral", text: "그저 그런 하루예요", color: "#E8ECE4" };
     if (hp >= -59) return { face: "tired", text: "조금 지쳐 있어요", color: "#e0a98f" };
     return { face: "drained", text: "많이 힘든 상태예요", color: "#E8785A" };
