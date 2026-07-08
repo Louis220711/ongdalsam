@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<title>옹달샘</title>
+
+<!-- 아이폰에서 '홈 화면에 추가' 했을 때 브라우저 주소창 없이 앱처럼 열리게 하는 설정 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="옹달샘">
+<meta name="theme-color" content="#142019">
+
+<!-- 홈 화면 아이콘 (간단한 SVG를 데이터로 직접 넣음 - 별도 이미지 파일 필요 없음) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231F2E28'/%3E%3Cellipse cx='50' cy='60' rx='34' ry='16' fill='%234FA8A0'/%3E%3Ccircle cx='50' cy='40' r='14' fill='%23f2e9d8'/%3E%3C/svg%3E">
+
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #0c1512;
+    min-height: 100vh;
+    /* 아이폰 노치/상태바 영역까지 배경이 자연스럽게 이어지도록 */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap');
+
+  .ods-root {
+    --moss: #1F2E28;
+    --moss-deep: #142019;
+    --water: #4FA8A0;
+    --mist: #E8ECE4;
+    --soil: #6B5744;
+    --coral: #E8785A;
+    --firefly: #F2C94C;
+
+    font-family: 'Noto Sans KR', sans-serif;
+    background: radial-gradient(ellipse at 50% 0%, #24362f 0%, var(--moss-deep) 70%);
+    color: var(--mist);
+    padding: 28px 18px 40px;
+    border-radius: 20px;
+    max-width: 480px;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+  .ods-root * { box-sizing: border-box; }
+
+  .ods-header { text-align: center; margin-bottom: 18px; }
+  .ods-title {
+    font-family: 'Gowun Batang', serif;
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    margin: 0;
+    color: var(--mist);
+  }
+  .ods-subtitle {
+    font-size: 12px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--water);
+    margin-top: 4px;
+    opacity: 0.85;
+  }
+
+  /* --- 연못(Pool) 무대 --- */
+  .ods-stage {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    margin: 10px 0 22px;
+  }
+  .ods-stage svg { width: 100%; height: 100%; display: block; }
+
+  .ods-hp-readout {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+  .ods-hp-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 500;
+    color: var(--firefly);
+    line-height: 1;
+  }
+  .ods-hp-label {
+    font-size: 10px;
+    color: var(--mist);
+    opacity: 0.6;
+    letter-spacing: 2px;
+  }
+  .ods-mood-text {
+    text-align: center;
+    font-size: 13px;
+    color: var(--mist);
+    opacity: 0.85;
+    margin-top: -10px;
+    margin-bottom: 18px;
+    font-family: 'Gowun Batang', serif;
+  }
+
+  /* --- 컨트롤 영역 --- */
+  .ods-section-label {
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--water);
+    margin: 0 0 8px 2px;
+    font-weight: 500;
+  }
+
+  .ods-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .ods-tab {
+    flex: 1;
+    padding: 9px 0;
+    text-align: center;
+    border-radius: 999px;
+    border: 1px solid rgba(232,236,228,0.18);
+    background: transparent;
+    color: var(--mist);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .ods-tab.active[data-cat="recover"] {
+    background: var(--water);
+    border-color: var(--water);
+    color: #10201d;
+  }
+  .ods-tab.active[data-cat="damage"] {
+    background: var(--coral);
+    border-color: var(--coral);
+    color: #2a1410;
+  }
+
+  .ods-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .ods-chip {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(232,236,228,0.22);
+    background: rgba(232,236,228,0.05);
+    color: var(--mist);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .ods-chip:hover { background: rgba(232,236,228,0.12); }
+  .ods-chip.selected {
+    background: var(--firefly);
+    border-color: var(--firefly);
+    color: #2a2205;
+    font-weight: 700;
+  }
+  .ods-custom-input {
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px dashed rgba(232,236,228,0.35);
+    background: transparent;
+    color: var(--mist);
+    font-size: 13px;
+    width: 140px;
+    outline: none;
+  }
+  .ods-custom-input:focus { border-color: var(--firefly); }
+  .ods-custom-input::placeholder { color: rgba(232,236,228,0.4); }
+
+  .ods-score-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(232,236,228,0.12);
+    border-radius: 16px;
+    padding: 14px 16px 18px;
+    margin-bottom: 18px;
+  }
+  .ods-score-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .ods-score-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 20px;
+  }
+  .ods-score-value.pos { color: var(--water); }
+  .ods-score-value.neg { color: var(--coral); }
+  .ods-score-value.zero { color: var(--mist); opacity: 0.6; }
+
+  input[type="range"].ods-slider {
+    width: 100%;
+    accent-color: var(--firefly);
+    cursor: pointer;
+  }
+  .ods-slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: rgba(232,236,228,0.4);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .ods-log-btn {
+    width: 100%;
+    padding: 13px 0;
+    border-radius: 14px;
+    border: none;
+    background: linear-gradient(135deg, var(--water), #3a8b83);
+    color: #0e1e1a;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+  }
+  .ods-log-btn:active { transform: scale(0.98); }
+  .ods-log-btn:disabled {
+    background: rgba(232,236,228,0.1);
+    color: rgba(232,236,228,0.3);
+    cursor: not-allowed;
+  }
+
+  .ods-history {
+    margin-top: 26px;
+  }
+  .ods-history-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid rgba(232,236,228,0.08);
+    font-size: 13px;
+  }
+  .ods-history-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .ods-history-item .ods-h-item { flex: 1; }
+  .ods-history-item .ods-h-score {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 500;
+  }
+  .ods-history-empty {
+    text-align: center;
+    font-size: 12px;
+    color: rgba(232,236,228,0.35);
+    padding: 20px 0;
+  }
+  .ods-reset {
+    display: block;
+    margin: 18px auto 0;
+    background: none;
+    border: none;
+    color: rgba(232,236,228,0.35);
+    font-size: 11px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="ods-root" id="ods-root">
+  <div class="ods-header">
+    <p class="ods-title">옹달샘</p>
+    <p class="ods-subtitle">How to operate myself</p>
+  </div>
+
+  <div class="ods-stage"><svg id="ods-svg" viewBox="0 0 300 260"></svg></div>
+  <p class="ods-mood-text" id="ods-mood-text"></p>
+
+  <p class="ods-section-label">무엇이 있었나요</p>
+  <div class="ods-tabs">
+    <div class="ods-tab active" data-cat="recover" id="tab-recover">🌿 회복</div>
+    <div class="ods-tab" data-cat="damage" id="tab-damage">🌧 상처</div>
+  </div>
+  <div class="ods-chips" id="ods-chips"></div>
+
+  <div class="ods-score-box">
+    <div class="ods-score-top">
+      <span class="ods-section-label" style="margin:0;">영향의 크기</span>
+      <span class="ods-score-value" id="ods-score-display">0</span>
+    </div>
+    <input type="range" class="ods-slider" id="ods-slider" min="-100" max="100" step="10" value="30" />
+    <div class="ods-slider-ticks"><span>-100</span><span>0</span><span>+100</span></div>
+  </div>
+
+  <button class="ods-log-btn" id="ods-log-btn" disabled>기록하기</button>
+
+  <div class="ods-history">
+    <p class="ods-section-label">지금까지의 발자국</p>
+    <div id="ods-history-list"></div>
+  </div>
+
+  <button class="ods-reset" id="ods-reset-btn">전체 기록 초기화</button>
+</div>
+
+<script>
+(function() {
+  const DEFAULT_RECOVER_ITEMS = ["충분한 수면", "산책", "좋은 대화", "맛있는 식사", "휴식", "취미 시간", "감사 일기"];
+  const DEFAULT_DAMAGE_ITEMS = ["수면 부족", "갈등", "과로", "비교·자책", "소음·과자극", "무시당함", "고립감"];
+
+  const state = {
+    hp: 0,
+    history: [],
+    recoverItems: [...DEFAULT_RECOVER_ITEMS],
+    damageItems: [...DEFAULT_DAMAGE_ITEMS],
+    category: "recover",
+    selectedItem: null,
+    customText: "",
+    score: 30,
+    loaded: false
+  };
+
+  const root = document.getElementById('ods-root');
+  const svg = document.getElementById('ods-svg');
+  const chipsEl = document.getElementById('ods-chips');
+  const moodTextEl = document.getElementById('ods-mood-text');
+  const scoreDisplay = document.getElementById('ods-score-display');
+  const slider = document.getElementById('ods-slider');
+  const logBtn = document.getElementById('ods-log-btn');
+  const historyList = document.getElementById('ods-history-list');
+  const tabRecover = document.getElementById('tab-recover');
+  const tabDamage = document.getElementById('tab-damage');
+  const resetBtn = document.getElementById('ods-reset-btn');
+
+  function moodOf(hp) {
+    if (hp >= 60) return { face: "radiant", text: "물이 맑고 가득해요", color: "#4FA8A0" };
+    if (hp >= 20) return { face: "calm", text: "평온한 하루예요", color: "#8fc9c2" };
+    if (hp >= -19) return { face: "neutral", text: "그저 그런 하루예요", color: "#E8ECE4" };
+    if (hp >= -59) return { face: "tired", text: "조금 지쳐 있어요", color: "#e0a98f" };
+    return { face: "drained", text: "많이 힘든 상태예요", color: "#E8785A" };
+  }
+
+  function fillRatio(hp) {
+    return (hp + 100) / 200; // 0~1
+  }
+
+  function faceParts(face) {
+    // returns {mouth path, eyeType}
+    switch(face) {
+      case "radiant": return { mouth: "M 130 168 Q 150 190 170 168", eye: "sparkle" };
+      case "calm": return { mouth: "M 133 170 Q 150 180 167 170", eye: "normal" };
+      case "neutral": return { mouth: "M 133 172 L 167 172", eye: "normal" };
+      case "tired": return { mouth: "M 133 176 Q 150 168 167 176", eye: "half" };
+      default: return { mouth: "M 130 180 Q 150 165 170 180", eye: "closed" };
+    }
+  }
+
+  function drawScene() {
+    const mood = moodOf(state.hp);
+    const ratio = fillRatio(state.hp);
+    const waterY = 205 - ratio * 90; // pool water surface y (higher hp = higher water = smaller y offset within pool)
+    const parts = faceParts(mood.face);
+
+    let eyesSvg = "";
+    if (parts.eye === "sparkle") {
+      eyesSvg = `
+        <circle cx="128" cy="150" r="5" fill="#142019"/>
+        <circle cx="172" cy="150" r="5" fill="#142019"/>
+        <circle cx="130" cy="148" r="1.6" fill="#F2C94C"/>
+        <circle cx="174" cy="148" r="1.6" fill="#F2C94C"/>`;
+    } else if (parts.eye === "normal") {
+      eyesSvg = `<circle cx="128" cy="150" r="4.5" fill="#142019"/><circle cx="172" cy="150" r="4.5" fill="#142019"/>`;
+    } else if (parts.eye === "half") {
+      eyesSvg = `<rect x="122" y="148" width="12" height="3" rx="1.5" fill="#142019"/><rect x="166" y="148" width="12" height="3" rx="1.5" fill="#142019"/>`;
+    } else {
+      eyesSvg = `<path d="M 122 150 Q 128 156 134 150" stroke="#142019" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M 166 150 Q 172 156 178 150" stroke="#142019" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+    }
+
+    svg.innerHTML = `
+      <defs>
+        <radialGradient id="poolGrad" cx="50%" cy="45%" r="60%">
+          <stop offset="0%" stop-color="${mood.color}" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="${mood.color}" stop-opacity="0.35"/>
+        </radialGradient>
+        <clipPath id="poolClip">
+          <ellipse cx="150" cy="205" rx="110" ry="42"/>
+        </clipPath>
+      </defs>
+
+      <!-- moss rim -->
+      <ellipse cx="150" cy="208" rx="122" ry="50" fill="#0f1a15"/>
+      <ellipse cx="150" cy="205" rx="112" ry="44" fill="#243830"/>
+
+      <!-- pool water, clipped, animated fill height -->
+      <g clip-path="url(#poolClip)">
+        <rect x="20" y="${waterY}" width="260" height="140" fill="url(#poolGrad)"/>
+        <ellipse cx="150" cy="${waterY}" rx="105" ry="10" fill="${mood.color}" opacity="0.55"/>
+      </g>
+      <ellipse cx="150" cy="205" rx="112" ry="44" fill="none" stroke="#0f1a15" stroke-width="3"/>
+
+      <!-- stones -->
+      <ellipse cx="60" cy="190" rx="14" ry="9" fill="#4a3c2e"/>
+      <ellipse cx="245" cy="195" rx="12" ry="8" fill="#4a3c2e"/>
+
+      <!-- character sitting on rock, edge of pool -->
+      <ellipse cx="150" cy="182" rx="30" ry="10" fill="#4a3c2e"/>
+      <circle cx="150" cy="150" r="34" fill="#f2e9d8"/>
+      ${eyesSvg}
+      <path d="${parts.mouth}" stroke="#142019" stroke-width="3" fill="none" stroke-linecap="round"/>
+    `;
+
+    moodTextEl.textContent = mood.text;
+    moodTextEl.style.color = mood.color;
+
+    document.getElementById('ods-hp-existing')?.remove();
+  }
+
+  function drawHpReadout() {
+    let readout = document.querySelector('.ods-hp-readout');
+    if (!readout) {
+      readout = document.createElement('div');
+      readout.className = 'ods-hp-readout';
+      readout.innerHTML = `<div class="ods-hp-number" id="ods-hp-num"></div><div class="ods-hp-label">HP</div>`;
+      document.querySelector('.ods-stage').appendChild(readout);
+    }
+    document.getElementById('ods-hp-num').textContent = (state.hp > 0 ? "+" : "") + state.hp;
+  }
+
+  function renderChips() {
+    const items = state.category === "recover" ? state.recoverItems : state.damageItems;
+    chipsEl.innerHTML = "";
+    items.forEach(item => {
+      const chip = document.createElement('div');
+      chip.className = 'ods-chip' + (state.selectedItem === item ? ' selected' : '');
+      chip.textContent = item;
+      chip.onclick = () => {
+        state.selectedItem = item;
+        state.customText = "";
+        renderChips();
+        updateLogButton();
+      };
+      chipsEl.appendChild(chip);
+    });
+    const customInput = document.createElement('input');
+    customInput.className = 'ods-custom-input';
+    customInput.placeholder = "직접 입력...";
+    customInput.value = state.customText;
+    customInput.oninput = (e) => {
+      state.customText = e.target.value;
+      state.selectedItem = null;
+      renderChipsSelectionOnly();
+      updateLogButton();
+    };
+    chipsEl.appendChild(customInput);
+  }
+
+  function renderChipsSelectionOnly() {
+    document.querySelectorAll('.ods-chip').forEach(c => c.classList.remove('selected'));
+  }
+
+  function updateScoreDisplay() {
+    const v = parseInt(slider.value, 10);
+    state.score = v;
+    scoreDisplay.textContent = (v > 0 ? "+" : "") + v;
+    scoreDisplay.className = 'ods-score-value ' + (v > 0 ? 'pos' : v < 0 ? 'neg' : 'zero');
+  }
+
+  function updateLogButton() {
+    const hasSelection = !!state.selectedItem || state.customText.trim().length > 0;
+    logBtn.disabled = !hasSelection;
+  }
+
+  function renderHistory() {
+    if (state.history.length === 0) {
+      historyList.innerHTML = `<div class="ods-history-empty">아직 기록이 없어요. 첫 발자국을 남겨보세요.</div>`;
+      return;
+    }
+    historyList.innerHTML = "";
+    state.history.slice(0, 20).forEach(entry => {
+      const row = document.createElement('div');
+      row.className = 'ods-history-item';
+      const dotColor = entry.category === 'recover' ? '#4FA8A0' : '#E8785A';
+      row.innerHTML = `
+        <span class="ods-history-dot" style="background:${dotColor}"></span>
+        <span class="ods-h-item">${entry.item}</span>
+        <span class="ods-h-score" style="color:${dotColor}">${entry.score > 0 ? '+' : ''}${entry.score}</span>
+      `;
+      historyList.appendChild(row);
+    });
+  }
+
+  function switchTab(cat) {
+    state.category = cat;
+    state.selectedItem = null;
+    state.customText = "";
+    tabRecover.classList.toggle('active', cat === 'recover');
+    tabDamage.classList.toggle('active', cat === 'damage');
+    slider.value = cat === 'recover' ? 30 : -30;
+    updateScoreDisplay();
+    renderChips();
+    updateLogButton();
+  }
+
+  async function saveState() {
+    try {
+      localStorage.setItem('ongdalsam-state', JSON.stringify({
+        hp: state.hp,
+        history: state.history,
+        recoverItems: state.recoverItems,
+        damageItems: state.damageItems
+      }));
+    } catch (e) {
+      console.error('저장 실패', e);
+    }
+  }
+
+  async function loadState() {
+    try {
+      const raw = localStorage.getItem('ongdalsam-state');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        state.hp = parsed.hp ?? 0;
+        state.history = parsed.history ?? [];
+        state.recoverItems = parsed.recoverItems ?? [...DEFAULT_RECOVER_ITEMS];
+        state.damageItems = parsed.damageItems ?? [...DEFAULT_DAMAGE_ITEMS];
+      }
+    } catch (e) {
+      // 처음 사용하는 경우 저장된 값이 없어서 에러가 날 수 있음 - 기본값 유지
+    }
+    state.loaded = true;
+    drawScene();
+    drawHpReadout();
+    renderChips();
+    renderHistory();
+  }
+
+  logBtn.onclick = async () => {
+    const item = state.selectedItem || state.customText.trim();
+    if (!item) return;
+    const delta = state.score;
+    state.hp = Math.max(-100, Math.min(100, state.hp + delta));
+    state.history.unshift({ item, score: delta, category: state.category, ts: Date.now() });
+
+    // 직접 입력한 항목이면 해당 카테고리의 개인 목록에 영구히 추가 (중복 방지)
+    const targetList = state.category === 'recover' ? state.recoverItems : state.damageItems;
+    if (!targetList.includes(item)) {
+      targetList.push(item);
+    }
+
+    drawScene();
+    drawHpReadout();
+    renderHistory();
+    await saveState();
+
+    state.selectedItem = null;
+    state.customText = "";
+    renderChips();
+    updateLogButton();
+  };
+
+  resetBtn.onclick = async () => {
+    state.hp = 0;
+    state.history = [];
+    state.recoverItems = [...DEFAULT_RECOVER_ITEMS];
+    state.damageItems = [...DEFAULT_DAMAGE_ITEMS];
+    drawScene();
+    drawHpReadout();
+    renderChips();
+    renderHistory();
+    await saveState();
+  };
+
+  tabRecover.onclick = () => switchTab('recover');
+  tabDamage.onclick = () => switchTab('damage');
+  slider.oninput = updateScoreDisplay;
+
+  // init
+  updateScoreDisplay();
+  renderChips();
+  updateLogButton();
+  loadState();
+})();
+</script>
+
+</body>
+</html>
